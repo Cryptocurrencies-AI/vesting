@@ -1,6 +1,6 @@
-# Stake
+# Vesting
 
-Programs for staking and lockups. For a technical introduction, see the [docs](./docs).
+Programs CCAI token vesting. For a technical introduction, see the [docs](./docs).
 
 ## Note
 

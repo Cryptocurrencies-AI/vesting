@@ -109,9 +109,9 @@ pub mod lockup {
         // Has the given amount vested?
         if amount
             > calculator::available_for_withdrawal(
-                &ctx.accounts.vesting,
-                ctx.accounts.clock.unix_timestamp,
-            )
+            &ctx.accounts.vesting,
+            ctx.accounts.clock.unix_timestamp,
+        )
         {
             return Err(ErrorCode::InsufficientWithdrawalBalance.into());
         }
@@ -232,7 +232,7 @@ impl<'info> CreateVesting<'info> {
             ],
             ctx.program_id,
         )
-        .map_err(|_| ErrorCode::InvalidProgramAddress)?;
+            .map_err(|_| ErrorCode::InvalidProgramAddress)?;
         if ctx.accounts.vault.owner != vault_authority {
             return Err(ErrorCode::InvalidVaultOwner)?;
         }
@@ -402,7 +402,7 @@ pub enum ErrorCode {
 }
 
 impl<'a, 'b, 'c, 'info> From<&mut CreateVesting<'info>>
-    for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>
+for CpiContext<'a, 'b, 'c, 'info, Transfer<'info>>
 {
     fn from(accounts: &mut CreateVesting<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {

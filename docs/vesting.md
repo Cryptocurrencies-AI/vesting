@@ -1,4 +1,4 @@
-# Lockups
+# Vesting
 
 WARNING: All code related to Lockups is unaudited. Use at your own risk.
 
