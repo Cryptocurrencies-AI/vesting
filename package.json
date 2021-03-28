@@ -1,0 +1,20 @@
+{
+  "devDependencies": {
+    "@project-serum/anchor": "^0.3.1-beta.2",
+    "@project-serum/common": "^0.0.1-beta.3",
+    "@project-serum/serum": "^0.13.31",
+    "@solana/spl-token": "^0.1.1",
+    "mocha": "^8.3.0"
+  },
+  "scripts": {
+    "client": "mocha tests/lockup.js",
+    "test": "anchor test",
+    "launch": "anchor launch",
+    "idl": "anchor idl",
+    "migrate": "anchor migrate",
+    "deploy": "anchor deploy",
+    "upgrade": "anchor upgrade",
+    "build": "anchor build",
+    "init-vesting": "export ANCHOR_PROVIDER_URL=https://devnet.solana.com && node init/createVesting.js"
+  }
+}
