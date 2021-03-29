@@ -16,5 +16,8 @@
     "upgrade": "anchor upgrade",
     "build": "anchor build",
     "init-vesting": "export ANCHOR_PROVIDER_URL=https://devnet.solana.com && node init/createVesting.js"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0"
   }
 }
