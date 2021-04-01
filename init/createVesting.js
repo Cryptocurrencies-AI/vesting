@@ -13,16 +13,17 @@ const createVesting = async () => {
   anchor.setProvider(provider);
   // #region main
   // Read the generated IDL.
-  const lockup_idl = JSON.parse(require('fs').readFileSync('./target/idl/lockup.json', 'utf8'));
+  const vestingProgram_idl = JSON.parse(require('fs').readFileSync('./target/idl/lockup.json', 'utf8'));
 
   // Address of the deployed program.
-  const lockupId = new anchor.web3.PublicKey(process.env.VESTING_PROGRAM_ADDRESS);
+  const vestingProgramId = new anchor.web3.PublicKey(process.env.VESTING_PROGRAM_ADDRESS);
 
   // #endregion main
-  const lockup = new anchor.Program(lockup_idl, lockupId);
+  const vestingProgram = new anchor.Program(vestingProgram_idl, vestingProgramId);
+  console.log('load program')
   const depositor = new anchor.web3.Account(JSON.parse(process.env.DEPOSITOR_PRIVATE_KEY));
 
-  let lockupAddress = null;
+  let vestingProgramAddress = null;
   const WHITELIST_SIZE = 10;
 
   let mint = new anchor.web3.PublicKey(process.env.MINT_ADDRESS);
@@ -35,13 +36,13 @@ const createVesting = async () => {
   let vestingAccount = null;
   let vestingSigner = null;
 
-  const createVestingFromSchedule = async (lockup, provider, vesting, schedule) => {
+  const createVestingFromSchedule = async (provider, vesting, schedule) => {
     const startTs = new anchor.BN(schedule.startTs / 1000 + 2000);
     const endTs = new anchor.BN(schedule.endTs + 600);
     const periodCount = new anchor.BN(schedule.periodCount);
     const beneficiary = schedule.beneficiary;
 
-    console.log(provider.wallet.publicKey)
+    console.log(schedule)
     const depositAmount = new anchor.BN(10);
 
     const vault = new anchor.web3.Account();
@@ -51,7 +52,7 @@ const createVesting = async () => {
       nonce,
     ] = await anchor.web3.PublicKey.findProgramAddress(
         [vesting.publicKey.toBuffer()],
-        lockup.programId
+        vestingProgram.programId
     );
     vestingSigner = _vestingSigner;
     console.log({
@@ -61,8 +62,8 @@ const createVesting = async () => {
       depositorAuthority: provider.wallet.publicKey.toBase58(),
       mint: mint
     })
-
-    await lockup.rpc.createVesting(
+    console.log(beneficiary)
+    await vestingProgram.rpc.createVesting(
         new anchor.web3.PublicKey(beneficiary),
         depositAmount,
         nonce,
@@ -82,7 +83,7 @@ const createVesting = async () => {
           },
           signers: [vesting, vault],
           instructions: [
-            await lockup.account.vesting.createInstruction(vesting),
+            await vestingProgram.account.vesting.createInstruction(vesting),
             ...(await serumCmn.createTokenAccountInstrs(
                 provider,
                 vault.publicKey,
@@ -93,17 +94,18 @@ const createVesting = async () => {
         }
     );
 
-    vestingAccount = await lockup.account.vesting(vesting.publicKey);
+    console.log('get vestingAccount')
+    vestingAccount = await vestingProgram.account.vesting(vesting.publicKey);
     console.log(vestingAccount)
 
   }
-  await Promise.all(schedule.strategic.map((sch) => createVestingFromSchedule(lockup, provider, vesting , sch)))
-  await Promise.all(schedule.ps1.map((sch) => createVestingFromSchedule(lockup, provider, vesting , sch)))
-  await Promise.all(schedule.ps2.map((sch) => createVestingFromSchedule(lockup, provider, vesting , sch)))
-  await Promise.all(schedule.team.map((sch) => createVestingFromSchedule(lockup, provider, vesting , sch)))
-  await Promise.all(schedule.marketing.map((sch) => createVestingFromSchedule(lockup, provider, vesting , sch)))
-  await Promise.all(schedule.community.map((sch) => createVestingFromSchedule(lockup, provider, vesting , sch)))
-  await Promise.all(schedule.ops.map((sch) => createVestingFromSchedule(lockup, provider, vesting , sch)))
+  await Promise.all(schedule.strategic.map((sch) => createVestingFromSchedule(provider, vesting , sch)))
+  // await Promise.all(schedule.ps1.map((sch) => createVestingFromSchedule(vestingProgram, provider, vesting , sch)))
+  // await Promise.all(schedule.ps2.map((sch) => createVestingFromSchedule(vestingProgram, provider, vesting , sch)))
+  // await Promise.all(schedule.team.map((sch) => createVestingFromSchedule(vestingProgram, provider, vesting , sch)))
+  // await Promise.all(schedule.marketing.map((sch) => createVestingFromSchedule(vestingProgram, provider, vesting , sch)))
+  // await Promise.all(schedule.community.map((sch) => createVestingFromSchedule(vestingProgram, provider, vesting , sch)))
+  // await Promise.all(schedule.ops.map((sch) => createVestingFromSchedule(vestingProgram, provider, vesting , sch)))
 };
 
 createVesting();
