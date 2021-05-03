@@ -147,6 +147,9 @@ pub mod lockup {
         let after_amount = ctx.accounts.transfer.vault.reload()?.amount;
 
         // CPI safety checks.
+        if before_amount <= after_amount {
+            return Err(ErrorCode::WhitelistWithdrawWrongCPI.into());
+        }
         let withdraw_amount = before_amount - after_amount;
         if withdraw_amount > amount {
             return Err(ErrorCode::WhitelistWithdrawLimit.into());
@@ -387,6 +390,8 @@ pub enum ErrorCode {
     InsufficientWhitelistDepositAmount,
     #[msg("Cannot deposit more than withdrawn")]
     WhitelistDepositOverflow,
+    #[msg("CPI is trying to deposit while it should withdraw")]
+    WhitelistWithdrawWrongCPI,
     #[msg("Tried to withdraw over the specified limit")]
     WhitelistWithdrawLimit,
     #[msg("Whitelist entry not found.")]
