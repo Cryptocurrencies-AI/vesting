@@ -149,7 +149,7 @@ pub mod lockup {
         // CPI safety checks.
         let withdraw_amount = before_amount - after_amount;
         if withdraw_amount > amount {
-            return Err(ErrorCode::WhitelistWithdrawLimit)?;
+            return Err(ErrorCode::WhitelistWithdrawLimit.into());
         }
 
         // Bookeeping.
@@ -171,13 +171,15 @@ pub mod lockup {
         )?;
         let after_amount = ctx.accounts.transfer.vault.reload()?.amount;
 
+        if after_amount <= before_amount {
+            return Err(ErrorCode::InsufficientWhitelistDepositAmount.into());
+        }
+
         // CPI safety checks.
         let deposit_amount = after_amount - before_amount;
-        if deposit_amount <= 0 {
-            return Err(ErrorCode::InsufficientWhitelistDepositAmount)?;
-        }
+
         if deposit_amount > ctx.accounts.transfer.vesting.whitelist_owned {
-            return Err(ErrorCode::WhitelistDepositOverflow)?;
+            return Err(ErrorCode::WhitelistDepositOverflow.into());
         }
 
         // Bookkeeping.
@@ -234,7 +236,7 @@ impl<'info> CreateVesting<'info> {
         )
             .map_err(|_| ErrorCode::InvalidProgramAddress)?;
         if ctx.accounts.vault.owner != vault_authority {
-            return Err(ErrorCode::InvalidVaultOwner)?;
+            return Err(ErrorCode::InvalidVaultOwner.into());
         }
 
         Ok(())
@@ -473,7 +475,7 @@ pub fn whitelist_relay_cpi<'info>(
     program::invoke_signed(&relay_instruction, &accounts, signer).map_err(Into::into)
 }
 
-pub fn is_whitelisted<'info>(transfer: &WhitelistTransfer<'info>) -> Result<()> {
+pub fn is_whitelisted(transfer: &WhitelistTransfer) -> Result<()> {
     if !transfer.lockup.whitelist.contains(&WhitelistEntry {
         program_id: *transfer.whitelisted_program.key,
     }) {
