@@ -35,8 +35,8 @@ const createVesting = async () => {
   let vestingSigner = null;
 
   const createVestingFromSchedule = async (provider, schedule) => {
-    const startTs = new anchor.BN(schedule.startTs / 1000 + 2000);
-    const endTs = new anchor.BN(schedule.endTs + 600);
+    const startTs = new anchor.BN(schedule.startTs);
+    const endTs = new anchor.BN(schedule.endTs);
     const periodCount = new anchor.BN(schedule.periodCount);
     const beneficiary = schedule.beneficiary;
     const depositAmount = new anchor.BN(schedule.depositAmount);
@@ -60,8 +60,8 @@ const createVesting = async () => {
     console.log({
       vesting: vesting.publicKey.toBase58(),
       vault: vault.publicKey.toBase58(),
-      depositor: depositor.publicKey.toBase58(),
-      depositorAuthority: provider.wallet.publicKey.toBase58(),
+      depositor: tokenAddress.toBase58(),
+      depositorAuthority: depositor.publicKey.toBase58(),
       mint: mint.toBase58()
     })
 
@@ -79,12 +79,12 @@ const createVesting = async () => {
             vesting: vesting.publicKey,
             vault: vault.publicKey,
             depositor: tokenAddress,
-            depositorAuthority: provider.wallet.publicKey,
+            depositorAuthority: depositor.publicKey,
             tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
             rent: anchor.web3.SYSVAR_RENT_PUBKEY,
             clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
           },
-          signers: [vesting, vault],
+          signers: [vesting, vault, depositor],
           instructions: [
             await vestingProgram.account.vesting.createInstruction(vesting),
             ...(await serumCmn.createTokenAccountInstrs(

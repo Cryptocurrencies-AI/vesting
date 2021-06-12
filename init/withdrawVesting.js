@@ -39,7 +39,6 @@ const withdrawVested = async () => {
     vestingProgram.programId
   );
   vestingSigner = _vestingSigner;  
-  
   console.log("Getting maximum withdrawal amount");
   const availableWithdrawalTxSignature = await vestingProgram.rpc.availableForWithdrawal({
     accounts: {
@@ -54,19 +53,7 @@ const withdrawVested = async () => {
     let msg = parsedTx.meta.logMessages[1];
     const availableFunds = JSON.parse(msg.substr(msg.indexOf("{"))).result;
     console.log("Available for withdraw " + availableFunds);
-    let token = null;
-    if (process.env.WITHDRAWAL_TOKEN_ACCOUNT) {
-        token = process.env.WITHDRAWAL_TOKEN_ACCOUNT;
-    } else {
-        console.log("WITHDRAWAL_TOKEN_ACCOUNT wasn't found; creating new token account")
-        token = await serumCmn.createTokenAccount(
-            provider,
-            mint,
-            provider.wallet.publicKey
-        );
-        console.log("Created new token account " + token.toBase58() +  "with owner " + provider.wallet.publicKey.toBase58());
-    }
-    const withdrawTokenAddress = token;
+    const withdrawTokenAddress = vestingAccount.beneficiary;
     
     console.log("Witdrawing available funds to the account " + withdrawTokenAddress.toBase58());
     await vestingProgram.rpc.withdraw(
@@ -74,10 +61,9 @@ const withdrawVested = async () => {
         {
           accounts: {
             vesting: vesting,
-            beneficiary: provider.wallet.publicKey,
+            beneficiary: withdrawTokenAddress,
             vault: vestingAccount.vault,
             vestingSigner,
-            token: withdrawTokenAddress,
             tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
             clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
           },

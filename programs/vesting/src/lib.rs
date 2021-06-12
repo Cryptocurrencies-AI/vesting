@@ -147,9 +147,12 @@ pub mod lockup {
         let after_amount = ctx.accounts.transfer.vault.reload()?.amount;
 
         // CPI safety checks.
+        if before_amount <= after_amount {
+            return Err(ErrorCode::WhitelistWithdrawWrongCPI.into());
+        }
         let withdraw_amount = before_amount - after_amount;
         if withdraw_amount > amount {
-            return Err(ErrorCode::WhitelistWithdrawLimit)?;
+            return Err(ErrorCode::WhitelistWithdrawLimit.into());
         }
 
         // Bookeeping.
@@ -171,13 +174,15 @@ pub mod lockup {
         )?;
         let after_amount = ctx.accounts.transfer.vault.reload()?.amount;
 
+        if after_amount <= before_amount {
+            return Err(ErrorCode::InsufficientWhitelistDepositAmount.into());
+        }
+
         // CPI safety checks.
         let deposit_amount = after_amount - before_amount;
-        if deposit_amount <= 0 {
-            return Err(ErrorCode::InsufficientWhitelistDepositAmount)?;
-        }
+
         if deposit_amount > ctx.accounts.transfer.vesting.whitelist_owned {
-            return Err(ErrorCode::WhitelistDepositOverflow)?;
+            return Err(ErrorCode::WhitelistDepositOverflow.into());
         }
 
         // Bookkeeping.
@@ -234,7 +239,7 @@ impl<'info> CreateVesting<'info> {
         )
             .map_err(|_| ErrorCode::InvalidProgramAddress)?;
         if ctx.accounts.vault.owner != vault_authority {
-            return Err(ErrorCode::InvalidVaultOwner)?;
+            return Err(ErrorCode::InvalidVaultOwner.into());
         }
 
         Ok(())
@@ -248,15 +253,13 @@ pub struct Withdraw<'info> {
     // Vesting.
     #[account(mut, has_one = beneficiary, has_one = vault)]
     vesting: ProgramAccount<'info, Vesting>,
-    #[account(signer)]
-    beneficiary: AccountInfo<'info>,
     #[account(mut)]
     vault: CpiAccount<'info, TokenAccount>,
     #[account(seeds = [vesting.to_account_info().key.as_ref(), &[vesting.nonce]])]
     vesting_signer: AccountInfo<'info>,
     // Withdraw receiving target..
     #[account(mut)]
-    token: CpiAccount<'info, TokenAccount>,
+    beneficiary: CpiAccount<'info, TokenAccount>,
     // Misc.
     #[account("token_program.key == &token::ID")]
     token_program: AccountInfo<'info>,
@@ -385,6 +388,8 @@ pub enum ErrorCode {
     InsufficientWhitelistDepositAmount,
     #[msg("Cannot deposit more than withdrawn")]
     WhitelistDepositOverflow,
+    #[msg("CPI is trying to deposit while it should withdraw")]
+    WhitelistWithdrawWrongCPI,
     #[msg("Tried to withdraw over the specified limit")]
     WhitelistWithdrawLimit,
     #[msg("Whitelist entry not found.")]
@@ -419,7 +424,7 @@ impl<'a, 'b, 'c, 'info> From<&Withdraw<'info>> for CpiContext<'a, 'b, 'c, 'info,
     fn from(accounts: &Withdraw<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
             from: accounts.vault.to_account_info(),
-            to: accounts.token.to_account_info(),
+            to: accounts.beneficiary.to_account_info(),
             authority: accounts.vesting_signer.to_account_info(),
         };
         let cpi_program = accounts.token_program.to_account_info();
@@ -473,7 +478,7 @@ pub fn whitelist_relay_cpi<'info>(
     program::invoke_signed(&relay_instruction, &accounts, signer).map_err(Into::into)
 }
 
-pub fn is_whitelisted<'info>(transfer: &WhitelistTransfer<'info>) -> Result<()> {
+pub fn is_whitelisted(transfer: &WhitelistTransfer) -> Result<()> {
     if !transfer.lockup.whitelist.contains(&WhitelistEntry {
         program_id: *transfer.whitelisted_program.key,
     }) {
