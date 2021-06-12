@@ -253,15 +253,13 @@ pub struct Withdraw<'info> {
     // Vesting.
     #[account(mut, has_one = beneficiary, has_one = vault)]
     vesting: ProgramAccount<'info, Vesting>,
-    #[account(signer)]
-    beneficiary: AccountInfo<'info>,
     #[account(mut)]
     vault: CpiAccount<'info, TokenAccount>,
     #[account(seeds = [vesting.to_account_info().key.as_ref(), &[vesting.nonce]])]
     vesting_signer: AccountInfo<'info>,
     // Withdraw receiving target..
     #[account(mut)]
-    token: CpiAccount<'info, TokenAccount>,
+    beneficiary: CpiAccount<'info, TokenAccount>,
     // Misc.
     #[account("token_program.key == &token::ID")]
     token_program: AccountInfo<'info>,
@@ -426,7 +424,7 @@ impl<'a, 'b, 'c, 'info> From<&Withdraw<'info>> for CpiContext<'a, 'b, 'c, 'info,
     fn from(accounts: &Withdraw<'info>) -> CpiContext<'a, 'b, 'c, 'info, Transfer<'info>> {
         let cpi_accounts = Transfer {
             from: accounts.vault.to_account_info(),
-            to: accounts.token.to_account_info(),
+            to: accounts.beneficiary.to_account_info(),
             authority: accounts.vesting_signer.to_account_info(),
         };
         let cpi_program = accounts.token_program.to_account_info();
